@@ -1,0 +1,125 @@
+First Pass - Mapping
+POST http://localhost:9200/vehicle_locations_raw
+{
+	"mappings" : {
+		"vl" : {
+			"properties" : {
+				"lasttime" : {
+					"type" : "date",
+					"format" : "epoch_millis"
+				},
+				"timestamp" : {
+					"type" : "date",
+					"format" : "YYYY-MM-DD'T'HH:mm:ssZ"
+				},
+				"routeTag" : {
+					"type" : "text"
+				},
+				"dirTag" : {
+					"type" : "text"
+				},
+				"location" : {
+					"type" : "geo_point"
+				},
+				"heading" : {
+					"type" : "integer"
+				}
+			}
+		}
+	}
+}
+
+First Pass - Doc Example (each document is the result of vehicleLocations)
+Each "batch" of vehicles that were returned must be saved as a document with the SAME `lastTime` timestamp (unix timestamp in ms)
+POST http://localhost:9200/vehicle_locations_raw/vl
+{
+	"lastTime" : 1502115823537,
+	"timestamp" : "2017-08-07T10:23:32-04:00"
+	"vehicleId" : "4229",
+	"routeTag" : "504",
+	"dirTag" : "504_1_504",
+	"location" : {
+		"lat" : "43.667183",
+		"lon" : "-79.353386"
+	},
+	"heading" : 168
+}
+
+Analytic - Mapping
+POST http://localhost:9200/vehicle_locations_analytic
+{
+	"mappings" : {
+		"clump" : {
+			"properties" : {
+				"lasttime" : {
+					"type" : "date",
+					"format" : "epoch_millis"
+				},
+				"timestamp" : {
+					"type" : "date",
+					"format" : "YYYY-MM-DD'T'HH:mm:ssZ"
+				},
+				"routeTag" : {
+					"type" : "text"
+				},
+				"dirTag" : {
+					"type" : "text"
+				},
+				"centroid" : {
+					"type" : "geo_point"
+				},
+				"clumpSize" : {
+					"type" : "integer"
+				},
+				"vehicles" : {
+					"properties" : {
+						"vehicleId" : {
+							"type" : "text"
+						},
+						"location" : {
+							"type" : "geo_point"
+						},
+						"heading" : {
+							"type" : "integer"
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+Analytic - Doc Example (each document is a clump)
+Logic will be something like:
+- aggregate raw index by `route`, `direction`, `lastTime`
+- compare the (10 or so?) vehicle locations that are in each agg to find any groupings of 2 or more that are within < 500m (or whatever we define as clumping distance)
+- for each clump found, write a doc as shown below
+POST http://localhost:9200/vehicle_analytic/clump
+{
+	"lastTime" : 1502115823537,
+	"timestamp" : "2017-08-07T10:23:32-04:00"
+	"routeTag" : "504",
+	"dirTag" : "504_1_504",
+	"centroid" : {
+		"lat" : 12,34,
+		"lon" : 23,45
+	},
+	"clumpSize" : 3,
+	"vehicles" : [
+		{
+			"vehicleId" : "4229",
+			"location" : {
+				"lat" : "43.667183",
+				"lon" : "-79.353386"
+			},
+			"heading" : 168
+		},
+		{
+			"vehicleId" : "4222",
+			...
+		},
+		{
+			...
+		}
+	]
+}
