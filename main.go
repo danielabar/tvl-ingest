@@ -38,6 +38,7 @@ func main() {
 }
 
 /*
+Sample response from vehicleLocations command API
 <?xml version="1.0" encoding="utf-8" ?>
 <body copyright="All data copyright Toronto Transit Commission 2017.">
     <vehicle id="4229" routeTag="504" dirTag="504_1_504" lat="43.667183" lon="-79.353386" secsSinceReport="4" predictable="true" heading="168"/>
@@ -79,5 +80,5 @@ type Vehicle struct {
 // Body mirrors the `body` element in xml response from vehicleLocations command of TTC real-time API
 type Body struct {
 	Vehicles     []Vehicle      `xml:"vehicle"`
-	LastReported []LastReported `xml:"lastTime"`
+	LastReported []LastReported `xml:"lastTime"` // There is only one lastTime element in response but xml.Unmarshal only reads the time attribute when this is declared as an array ¯\_(ツ)_/¯
 }
